@@ -1,0 +1,25 @@
+Set grande do kit (dados/grande, 200 000 casos) - 2026-10-23
+Máquina: Windows 11, Docker Desktop (backend Linux), Go 1.22+
+
+== Nativo ==
+$ python medir.py --set grande --cmd "bin\motor.exe --entrada {entrada}"
+casos:            200000
+acertos:          200000 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.828, 0.558, 0.570
+mediana (s):      0.570
+
+== Docker --cpus=1 ==
+$ docker build -t motor-duplicatas .
+$ python medir.py --set grande --cmd "docker run --rm --cpus=1 -v {dir}:/dados motor-duplicatas --entrada /dados/{arquivo}"
+casos:            200000
+acertos:          200000 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       14.950, 12.061, 11.034
+mediana (s):      12.061
+
+Obs.: no Docker Desktop para Windows, o volume (-v) monta uma pasta do Windows
+dentro da VM Linux, e ler o arquivo por essa montagem domina o tempo. Num host
+Linux o mesmo comando tem custo de contêiner na casa de 0,3 s (ver sintetico_200k.txt).

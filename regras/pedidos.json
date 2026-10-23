@@ -1,0 +1,15 @@
+{
+  "dominio": "Pedidos de e-commerce (exemplo de segundo domínio, mesmo motor)",
+  "padrao": "NORMAL",
+  "variaveis": { "hoje": "2026-10-23" },
+  "regras": [
+    { "codigo": "BLOQUEIO", "se": { "campo": "cliente.bloqueado", "op": "=", "valor": true } },
+    { "codigo": "FRAUDE", "se": { "todas": [
+        { "campo": "pagamento.score", "op": "<", "valor": 300 },
+        { "campo": "total", "op": ">=", "valor": 2000 } ] } },
+    { "codigo": "ATRASADO", "se": { "campo": "prazo", "op": "<", "tipo": "data", "valor": "$hoje" } },
+    { "codigo": "VIP", "se": { "qualquer": [
+        { "campo": "cliente.nivel", "op": "em", "valor": ["OURO", "PLATINA"] },
+        { "nao": { "campo": "cupom", "op": "vazio" } } ] } }
+  ]
+}

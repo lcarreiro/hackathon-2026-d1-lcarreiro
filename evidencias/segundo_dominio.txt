@@ -1,0 +1,6 @@
+id:1 - regra: BLOQUEIO
+id:2 - regra: FRAUDE
+id:3 - regra: ATRASADO
+id:4 - regra: VIP
+id:5 - regra: VIP
+id:6 - regra: NORMAL

@@ -1,0 +1,6 @@
+{"id":1,"cliente":{"bloqueado":true,"nivel":"OURO"},"total":50}
+{"id":2,"cliente":{"bloqueado":false},"pagamento":{"score":120},"total":2500}
+{"id":3,"cliente":{"bloqueado":false},"prazo":"2026-10-01","total":10}
+{"id":4,"cliente":{"nivel":"PLATINA"},"prazo":"2026-12-01","total":10}
+{"id":5,"cupom":"BLACK10","total":10}
+{"id":6,"cliente":{"bloqueado":"true"},"total":10}

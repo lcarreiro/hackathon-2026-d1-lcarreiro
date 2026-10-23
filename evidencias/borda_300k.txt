@@ -1,0 +1,7 @@
+# borda 300 mil (testes/gerar.py --n 300000 --borda 0.7 --seed 7), gabarito = testes/oraculo.py · nativo 1 CPU
+casos:            300000
+acertos:          300000 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.442, 0.435, 0.449
+mediana (s):      0.442

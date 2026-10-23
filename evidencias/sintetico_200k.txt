@@ -1,0 +1,15 @@
+# sintético 200 mil (testes/gerar.py --n 200000 --seed 2026) · nativo 1 CPU
+casos:            200000
+acertos:          200000 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.284, 0.268, 0.285
+mediana (s):      0.284
+
+# idem · Docker --cpus=1
+casos:            200000
+acertos:          200000 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.712, 0.607, 0.625
+mediana (s):      0.625

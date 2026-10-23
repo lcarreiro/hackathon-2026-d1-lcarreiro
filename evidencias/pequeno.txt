@@ -1,0 +1,15 @@
+# set pequeno (kit) · binário nativo, 1 CPU (taskset)
+casos:            100
+acertos:          100 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.004, 0.003, 0.003
+mediana (s):      0.003
+
+# set pequeno (kit) · Docker --cpus=1
+casos:            100
+acertos:          100 (100.00%)
+ids ausentes:     0
+linhas inválidas: 0
+tempos (s):       0.308, 0.274, 0.303
+mediana (s):      0.303

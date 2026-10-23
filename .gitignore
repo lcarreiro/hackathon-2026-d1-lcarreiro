@@ -1,0 +1,6 @@
+bin/
+dados/grande/
+dados/sintetico/
+dados/borda/
+*.test
+saida.txt

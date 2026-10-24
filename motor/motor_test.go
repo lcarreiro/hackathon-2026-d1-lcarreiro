@@ -1,24 +1,27 @@
-package main
+package motor
 
 import (
 	"bytes"
 	"io"
+	"math"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 )
 
-func carregar(t testing.TB) *motor {
-	m, err := carregarRegras("regras/duplicatas.json")
+func carregar(t testing.TB) *Motor {
+	m, err := Carregar("../regras/duplicatas.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return m
 }
 
-func rodar(m *motor, entrada string) string {
+func rodar(m *Motor, entrada string) string {
 	var out bytes.Buffer
-	m.processar([]byte(entrada), &out, false)
+	m.Processar([]byte(entrada), &out, false)
 	return out.String()
 }
 
@@ -31,12 +34,15 @@ func TestSemantica(t *testing.T) {
 		{"escape unicode", `{"id":1,"status":"CANCELADA"}`, "R01"},
 		{"chave repetida vale a última", `{"id":1,"status":"CANCELADA","status":"ATIVA"}`, "SEM_REGRA"},
 		{"pai repetido zera filhos", `{"id":1,"financeiro":{"valor":900000},"financeiro":{"moeda":"BRL"}}`, "SEM_REGRA"},
+		{"pai repetido em outra linha não vaza", "{\"id\":1,\"financeiro\":{\"valor\":900000}}\n{\"id\":1,\"financeiro\":{\"moeda\":\"BRL\"}}", "R07\nid:1 - regra: SEM_REGRA"},
 		{"valor texto não é número", `{"id":1,"financeiro":{"valor":"900000"}}`, "SEM_REGRA"},
 		{"limite >= inclui", `{"id":1,"financeiro":{"valor":500000}}`, "R07"},
 		{"limite >= exponencial", `{"id":1,"financeiro":{"valor":5e5}}`, "R07"},
+		{"limite >= com zeros", `{"id":1,"financeiro":{"valor":500000.000}}`, "R07"},
 		{"abaixo do limite", `{"id":1,"financeiro":{"valor":499999.99}}`, "SEM_REGRA"},
 		{"> exclui o limite", `{"id":1,"logistica":{"modal":"AEREO","peso_kg":500}}`, "SEM_REGRA"},
 		{"> acima do limite", `{"id":1,"logistica":{"modal":"AEREO","peso_kg":500.01}}`, "R09"},
+		{"número inválido", `{"id":1,"financeiro":{"valor":+500000}}`, ""},
 		{"vazio: ausente", `{"id":1,"logistica":{"status_entrega":"AVARIADA"}}`, "R04"},
 		{"vazio: nulo", `{"id":1,"logistica":{"status_entrega":"AVARIADA"},"manifestacao":{"tipo":null}}`, "R04"},
 		{"vazio: texto vazio", `{"id":1,"logistica":{"status_entrega":"AVARIADA"},"manifestacao":{"tipo":""}}`, "R04"},
@@ -60,6 +66,9 @@ func TestSemantica(t *testing.T) {
 	for _, c := range casos {
 		got := strings.TrimSpace(rodar(m, c.json+"\n"))
 		want := "id:1 - regra: " + c.regra
+		if c.regra == "" {
+			want = "" // linha inválida: ignorada
+		}
 		if got != want {
 			t.Errorf("%s: %s\n  obtido: %s\n  esperado: %s", c.nome, c.json, got, want)
 		}
@@ -68,8 +77,8 @@ func TestSemantica(t *testing.T) {
 
 func TestSetPequeno(t *testing.T) {
 	m := carregar(t)
-	in, _ := os.ReadFile("dados/pequeno/entrada.jsonl")
-	gab, _ := os.ReadFile("dados/pequeno/gabarito.txt")
+	in, _ := os.ReadFile("../dados/pequeno/entrada.jsonl")
+	gab, _ := os.ReadFile("../dados/pequeno/gabarito.txt")
 	if got := rodar(m, string(in)); got != string(gab) {
 		t.Fatal("saída difere do gabarito do set pequeno")
 	}
@@ -80,27 +89,53 @@ func TestRegrasInvalidas(t *testing.T) {
 		`{"regras":[{"codigo":"X","se":{"campo":"a","op":"~","valor":1}}]}`,
 		`{"regras":[{"codigo":"X","se":{"campo":"a","op":"<","campo_ref":"b"}}]}`,
 		`{"regras":[{"codigo":"X","se":{"campo":"a","op":"<","valor":"$nao_existe"}}]}`,
+		`{"regras":[{"codigo":"X","se":{"campo":"a","op":"<","valor":true}}]}`,
+		`{"regras":[{"codigo":"X","se":{"campo":"a","op":"em","valor":["A",1]}}]}`,
 		`{"regras":[{"se":{"campo":"a","op":"=","valor":1}}]}`,
 	}
 	for _, r := range ruins {
 		f, _ := os.CreateTemp(t.TempDir(), "*.json")
 		f.WriteString(r)
 		f.Close()
-		if _, err := carregarRegras(f.Name()); err == nil {
+		if _, err := Carregar(f.Name()); err == nil {
 			t.Errorf("deveria rejeitar: %s", r)
+		}
+	}
+}
+
+// O caminho rápido de lerNumero precisa dar exatamente o mesmo float64 que
+// strconv.ParseFloat.
+func TestLerNumeroIgualStrconv(t *testing.T) {
+	fixos := []string{"0", "-0", "1", "5e5", "500000.00", "499999.99", "0.1", "1e22", "1e23",
+		"9007199254740993", "123456789012345678901", "1e-400", "1e400", "-1.5E-3", "0.000001"}
+	r := rand.New(rand.NewSource(1))
+	for i := 0; i < 200000; i++ {
+		s := strconv.FormatFloat(r.Float64()*math.Pow(10, float64(r.Intn(12))), 'f', r.Intn(6), 64)
+		fixos = append(fixos, s)
+	}
+	for _, s := range fixos {
+		want, _ := strconv.ParseFloat(s, 64)
+		got, ok := lerNumero([]byte(s))
+		if !ok || math.Float64bits(got) != math.Float64bits(want) {
+			t.Fatalf("%s: obtido %v (ok=%v), esperado %v", s, got, ok, want)
+		}
+	}
+	for _, s := range []string{"", "-", "+1", "01", "1.", ".5", "1e", "1e+", "0x10", "1_000"} {
+		if _, ok := lerNumero([]byte(s)); ok {
+			t.Errorf("%q deveria ser inválido", s)
 		}
 	}
 }
 
 func BenchmarkSintetico(b *testing.B) {
 	m := carregar(b)
-	d, err := os.ReadFile("dados/sintetico/entrada.jsonl")
+	d, err := os.ReadFile("../dados/sintetico/entrada.jsonl")
 	if err != nil {
 		b.Skip("gere com: python3 testes/gerar.py --n 200000 --saida dados/sintetico")
 	}
 	b.SetBytes(int64(len(d)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		m.processar(d, io.Discard, false)
+		m.Processar(d, io.Discard, false)
 	}
 }

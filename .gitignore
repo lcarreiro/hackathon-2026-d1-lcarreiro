@@ -4,3 +4,4 @@ dados/sintetico/
 dados/borda/
 *.test
 saida.txt
+__pycache__/

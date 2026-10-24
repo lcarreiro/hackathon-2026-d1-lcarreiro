@@ -23,3 +23,21 @@ mediana (s):      12.061
 Obs.: no Docker Desktop para Windows, o volume (-v) monta uma pasta do Windows
 dentro da VM Linux, e ler o arquivo por essa montagem domina o tempo. Num host
 Linux o mesmo comando tem custo de contêiner na casa de 0,3 s (ver sintetico_200k.txt).
+
+== 2026-10-24: leitura com os.ReadFile no lugar de mmap ==
+Mesma máquina. Diagnóstico (container alpine, mesmo bind mount):
+  subir e sair sem processar ............ ~1,2 s
+  cat do arquivo (blocos grandes) ....... ~2,5-3 s no total
+  dd do arquivo em blocos de 4 KB ....... 8-10 s  (perfil parecido com o do mmap)
+
+$ docker build -t motor-duplicatas .
+$ python medir.py --set grande --repeticoes 5 --cmd "docker run --rm --cpus=1 -v {dir}:/dados motor-duplicatas --entrada /dados/{arquivo}"
+acertos:          200000 (100.00%)
+tempos (s):       4.521, 3.769, 3.909, 5.167, 5.840
+mediana (s):      4.521
+
+$ python medir.py --set grande --cmd "bin\motor.exe --entrada {entrada}"
+acertos:          200000 (100.00%)
+tempos (s):       0.741, 0.844, 0.702
+mediana (s):      0.741
+(o binário Windows já usava ReadFile; a diferença para 0,570 s é carga da máquina)

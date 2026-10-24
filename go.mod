@@ -1,3 +1,3 @@
-module motor
+module duplicatas
 
 go 1.24.7
